@@ -29,7 +29,9 @@ public class AppDataAnalise {
         System.out.println("Dataset read: ");
         df.show();
         //We are making a temp view from the df we read
+        System.out.println("Creation of temp view");
         df.createOrReplaceTempView(Constants.DB_TABLE);
+        System.out.println("First query --> max_loan_num_age_range");
         Dataset<Row> df_metric_1 = spark.sql("select t.range as age_ranges, count(*) as counter\n" +
                 "from (\n" +
                 "  select case  \n" +
@@ -50,6 +52,7 @@ public class AppDataAnalise {
         df_metric_1_formatted.show();
         //For next metrics we will implement everything in sql
         //We are using the avg to give the true value of the balance here, because the group numbers are heterogeneous
+        System.out.println("Second query --> max_balance_age_range_marital_status");
         Dataset<Row> df_metric_2 = spark.sql("select 'max_balance_age_range_marital_status' as name,concat(t.range,'|',t.marital) as key, avg(CAST (balance as INTEGER)) as value\n" +
                 "from (\n" +
                 "  select case  \n" +
@@ -63,7 +66,7 @@ public class AppDataAnalise {
                 "group by t.range,t.marital"
         ).orderBy(col("value").desc()).limit(1);
         df_metric_2.show();
-
+        System.out.println("Third query --> most_common_contact_between_ages_25_35");
         Dataset<Row> df_metric_3 = spark.sql(
                 "select 'most_common_contact_between_ages_25_35' as name,contact as key, count(1) as value\n" +
                 "        from (\n" +
@@ -76,7 +79,7 @@ public class AppDataAnalise {
                 "        group by t.range,contact"
         ).orderBy(col("value").desc()).limit(1);
         df_metric_3.show();
-
+        System.out.println("Fourth query --> max_balance_for_each_campaign_with_marrital_and_job, min_balance_for_each_campaign_with_marrital_and_job and avg_balance_for_each_campaign_with_marrital_and_job");
         Dataset<Row> df_metric_4 = spark.sql("with t as (select CONCAT(campaign,'|',marital,'|',job) as key,balance\n" +
                 "    from bank_1 b\n" +
                 "    )\n" +
@@ -88,6 +91,7 @@ public class AppDataAnalise {
         );
         df_metric_4.show();
 
+        System.out.println("Fifth query --> most_common_job_for_married_housing_campaign_3_with_more_than_1200_balance, min_balance_for_each_campaign_with_marrital_and_job and avg_balance_for_each_campaign_with_marrital_and_job");
         Dataset<Row> df_metric_5 = spark.sql("select 'most_common_job_for_married_housing_campaign_3_with_more_than_1200_balance' as name,job as key, count(1) as value\n" +
                 "from (\n" +
                 "  select *\n" +
@@ -102,7 +106,8 @@ public class AppDataAnalise {
         ).orderBy(col("value").desc()).limit(1);
         df_metric_5.show();
 
-       Dataset<Row> df_metrics = df_metric_1_formatted
+        System.out.println("Now we merge all data into one dataframe and insert it in "+Constants.DB_TABLE_METRICS);
+        Dataset<Row> df_metrics = df_metric_1_formatted
                .union(df_metric_2)
                .union(df_metric_3)
                .union(df_metric_4)
